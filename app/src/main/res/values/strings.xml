@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Fotobudka</string>
+    
+    <string name="take_photo">TAKE PHOTO</string>
 </resources>
