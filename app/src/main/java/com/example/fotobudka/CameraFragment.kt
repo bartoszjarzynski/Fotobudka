@@ -98,10 +98,10 @@ class CameraFragment : Fragment() {
                 dd = duration.toLong() * 1000
             }
             takePhoto()
-            for (i in 2..a) {
+            for (i in 1 until a) {
                 Handler(Looper.getMainLooper()).postDelayed({
                     takePhoto()
-                }, dd)
+                }, dd * i)
             }
         }
     }
