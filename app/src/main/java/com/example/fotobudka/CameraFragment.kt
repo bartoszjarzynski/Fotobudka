@@ -31,10 +31,10 @@ import java.util.concurrent.Executors
 class CameraFragment : Fragment() {
 
     private lateinit var navController: NavController
-    private lateinit var amount: String
+    private var amount = ""
+    private var clicked = false
     private var _binding: FragmentCameraBinding? = null
     private val binding get() = _binding!!
-
     private var imageCapture: ImageCapture? = null
     private lateinit var outputDirectory: File
     private lateinit var cameraExecutor: ExecutorService
@@ -46,6 +46,7 @@ class CameraFragment : Fragment() {
         super.onCreate(savedInstanceState)
 
         amount = arguments?.getString("amount").toString()
+        clicked = arguments?.getString("clicked").toString().toBoolean()
     }
 
     override fun onAttach(context: Context) {
@@ -79,12 +80,13 @@ class CameraFragment : Fragment() {
         }
 
         binding.optionsBtn.setOnClickListener {
+            clicked = true
             navController.navigate(R.id.action_cameraFragment_to_optionsFragment)
         }
 
         binding.takePhotoBtn.setOnClickListener {
             var a = 1
-            if (amount != "") {
+            if (clicked) {
                 a = amount.toInt()
             }
             for (i in 1..a) {

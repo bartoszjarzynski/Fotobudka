@@ -12,11 +12,12 @@
         android:name="com.example.fotobudka.CameraFragment"
         android:label="fragment_camera"
         tools:layout="@layout/fragment_camera" >
-
         <argument
             android:name="amount"
             android:defaultValue="None" />
-
+        <argument
+            android:name="clicked"
+            android:defaultValue="None" />
         <action
             android:id="@+id/action_cameraFragment_to_optionsFragment"
             app:destination="@id/optionsFragment" />
