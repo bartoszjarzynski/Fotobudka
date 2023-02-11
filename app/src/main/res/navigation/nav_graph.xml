@@ -16,6 +16,9 @@
             android:name="amount"
             android:defaultValue="None" />
         <argument
+            android:name="duration"
+            android:defaultValue="None" />
+        <argument
             android:name="clicked"
             android:defaultValue="None" />
         <action

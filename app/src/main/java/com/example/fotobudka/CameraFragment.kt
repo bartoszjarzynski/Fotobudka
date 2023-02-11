@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -32,6 +34,7 @@ class CameraFragment : Fragment() {
 
     private lateinit var navController: NavController
     private var amount = ""
+    private var duration = ""
     private var clicked = false
     private var _binding: FragmentCameraBinding? = null
     private val binding get() = _binding!!
@@ -46,6 +49,7 @@ class CameraFragment : Fragment() {
         super.onCreate(savedInstanceState)
 
         amount = arguments?.getString("amount").toString()
+        duration = arguments?.getString("duration").toString()
         clicked = arguments?.getString("clicked").toString().toBoolean()
     }
 
@@ -86,11 +90,18 @@ class CameraFragment : Fragment() {
 
         binding.takePhotoBtn.setOnClickListener {
             var a = 1
+            val d = 1000
+            var dd = d.toLong()
+
             if (clicked) {
                 a = amount.toInt()
+                dd = duration.toLong() * 1000
             }
-            for (i in 1..a) {
-                takePhoto()
+            takePhoto()
+            for (i in 2..a) {
+                Handler(Looper.getMainLooper()).postDelayed({
+                    takePhoto()
+                }, dd)
             }
         }
     }

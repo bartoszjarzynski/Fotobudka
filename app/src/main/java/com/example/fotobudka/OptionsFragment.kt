@@ -36,8 +36,9 @@ class OptionsFragment : Fragment() {
 
         binding.submit.setOnClickListener {
             val numberOfPhotos = binding.numberOfPhotosET.text.toString()
+            val duration = binding.breakDurationET.text.toString()
             val clicked = true.toString()
-            val bundle = bundleOf("amount" to numberOfPhotos, "clicked" to clicked)
+            val bundle = bundleOf("amount" to numberOfPhotos, "duration" to duration, "clicked" to clicked)
 
             navController.navigate(R.id.action_optionsFragment_to_cameraFragment, bundle)
         }
