@@ -12,11 +12,5 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        val cameraFragment = CameraFragment()
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.fragment_container, cameraFragment)
-            .commit()
     }
 }

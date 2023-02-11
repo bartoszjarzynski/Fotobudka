@@ -18,7 +18,9 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.fotobudka.databinding.ActivityMainBinding
+import androidx.core.os.bundleOf
+import androidx.navigation.NavController
+import androidx.navigation.Navigation
 import com.example.fotobudka.databinding.FragmentCameraBinding
 import java.io.File
 import java.text.SimpleDateFormat
@@ -28,6 +30,8 @@ import java.util.concurrent.Executors
 
 class CameraFragment : Fragment() {
 
+    private lateinit var navController: NavController
+    private lateinit var amount: String
     private var _binding: FragmentCameraBinding? = null
     private val binding get() = _binding!!
 
@@ -40,6 +44,8 @@ class CameraFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        amount = arguments?.getString("amount").toString()
     }
 
     override fun onAttach(context: Context) {
@@ -55,6 +61,13 @@ class CameraFragment : Fragment() {
     ): View {
         _binding = FragmentCameraBinding.inflate(inflater, container, false)
 
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        navController = Navigation.findNavController(view)
+
         outputDirectory = getOutputDirectory()
         cameraExecutor = Executors.newSingleThreadExecutor()
         if (allPermissionGranted()) {
@@ -66,14 +79,18 @@ class CameraFragment : Fragment() {
         }
 
         binding.optionsBtn.setOnClickListener {
-            //val optionsFragment = OptionsFragment()
+            navController.navigate(R.id.action_cameraFragment_to_optionsFragment)
         }
 
         binding.takePhotoBtn.setOnClickListener {
-            takePhoto()
+            var a = 1
+            if (amount != "") {
+                a = amount.toInt()
+            }
+            for (i in 1..a) {
+                takePhoto()
+            }
         }
-
-        return binding.root
     }
 
     private fun getOutputDirectory() : File {
