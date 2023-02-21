@@ -3,6 +3,7 @@ package com.example.fotobudka
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -10,13 +11,11 @@ import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -24,6 +23,7 @@ import androidx.core.os.bundleOf
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.example.fotobudka.databinding.FragmentCameraBinding
+import com.example.fotobudka.db.CameraDatabase
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -33,9 +33,6 @@ import java.util.concurrent.Executors
 class CameraFragment : Fragment() {
 
     private lateinit var navController: NavController
-    private var amount = ""
-    private var duration = ""
-    private var clicked = false
     private var _binding: FragmentCameraBinding? = null
     private val binding get() = _binding!!
     private var imageCapture: ImageCapture? = null
@@ -47,10 +44,6 @@ class CameraFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        amount = arguments?.getString("amount").toString()
-        duration = arguments?.getString("duration").toString()
-        clicked = arguments?.getString("clicked").toString().toBoolean()
     }
 
     override fun onAttach(context: Context) {
@@ -83,25 +76,71 @@ class CameraFragment : Fragment() {
             )
         }
 
+        val db = CameraDatabase.getInstance(ctx)
+        if (db.cameraDao().ifSettings() == 0) {
+            val settings = com.example.fotobudka.db.entity.Camera(5, 5, 3)
+            db.cameraDao().addSettings(settings)
+        }
+
+        val takePhotoSound = MediaPlayer.create(ctx, R.raw.make_photo)
+        val endOfSeriesSound = MediaPlayer.create(ctx, R.raw.end_of_series)
+        val beforePhotoSound = MediaPlayer.create(ctx, R.raw.before_photo)
+
+        fun betweenPhotos() {
+            takePhoto()
+            takePhotoSound.start()
+        }
+
+        fun lastPhoto() {
+            takePhoto()
+            takePhotoSound.start()
+            Handler(Looper.getMainLooper()).postDelayed({
+                endOfSeriesSound.start()
+            }, 2000)
+        }
+
         binding.optionsBtn.setOnClickListener {
-            clicked = true
             navController.navigate(R.id.action_cameraFragment_to_optionsFragment)
         }
 
         binding.takePhotoBtn.setOnClickListener {
-            var a = 1
-            val d = 1000
-            var dd = d.toLong()
+            val settings = db.cameraDao().readAllSettings()
+            val a = settings.amount
+            val d = settings.duration
+            val b = settings.before
 
-            if (clicked) {
-                a = amount.toInt()
-                dd = duration.toLong() * 1000
+            val dd: Long = d.toLong() * 1000
+            var bb: Long = b.toLong() * 1000
+
+
+
+
+            val handler = Handler()
+            val numRuns = b
+            var counter = 0
+
+            val runnable = object : Runnable {
+                override fun run() {
+                    if (counter < numRuns) {
+                            beforePhotoSound.start()
+                        counter++
+                        handler.postDelayed(this, 1000)
+                    } else {
+                        handler.removeCallbacks(this)
+                    }
+                }
             }
-            takePhoto()
-            for (i in 1 until a) {
+
+
+
+
+            for (i in 0 until a) {
                 Handler(Looper.getMainLooper()).postDelayed({
-                    takePhoto()
-                }, dd * i)
+                    if (i != a - 1) {
+                        betweenPhotos()
+                    } else {
+                        lastPhoto()
+                    }}, dd * i)
             }
         }
     }
