@@ -11,7 +11,6 @@ import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
-import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -19,16 +18,25 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.os.bundleOf
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.example.fotobudka.databinding.FragmentCameraBinding
 import com.example.fotobudka.db.CameraDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import okhttp3.*
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 
 class CameraFragment : Fragment() {
 
@@ -86,19 +94,6 @@ class CameraFragment : Fragment() {
         val endOfSeriesSound = MediaPlayer.create(ctx, R.raw.end_of_series)
         val beforePhotoSound = MediaPlayer.create(ctx, R.raw.before_photo)
 
-        fun betweenPhotos() {
-            takePhoto()
-            takePhotoSound.start()
-        }
-
-        fun lastPhoto() {
-            takePhoto()
-            takePhotoSound.start()
-            Handler(Looper.getMainLooper()).postDelayed({
-                endOfSeriesSound.start()
-            }, 2000)
-        }
-
         binding.optionsBtn.setOnClickListener {
             navController.navigate(R.id.action_cameraFragment_to_optionsFragment)
         }
@@ -110,37 +105,30 @@ class CameraFragment : Fragment() {
             val b = settings.before
 
             val dd: Long = d.toLong() * 1000
-            var bb: Long = b.toLong() * 1000
+            val bb: Long = b.toLong() * 1000
 
-
-
-
-            val handler = Handler()
-            val numRuns = b
-            var counter = 0
-
-            val runnable = object : Runnable {
-                override fun run() {
-                    if (counter < numRuns) {
-                            beforePhotoSound.start()
-                        counter++
-                        handler.postDelayed(this, 1000)
-                    } else {
-                        handler.removeCallbacks(this)
-                    }
-                }
-            }
-
-
-
-
-            for (i in 0 until a) {
+            makeDir()
+            for (i in 1 .. a) {
                 Handler(Looper.getMainLooper()).postDelayed({
-                    if (i != a - 1) {
-                        betweenPhotos()
+                    if (i == 1) {
+                        beforePhotoSound.start()
                     } else {
-                        lastPhoto()
-                    }}, dd * i)
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            beforePhotoSound.start()
+                        }, bb * i + 2000)
+                    }
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        if (i != a) {
+                            takePhoto()
+                            takePhotoSound.start()
+                        } else {
+                            takePhoto()
+                            takePhotoSound.start()
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                endOfSeriesSound.start()
+                            }, 2000)
+                    }}, bb * i)
+                }, (dd-bb) * i)
             }
         }
     }
@@ -157,9 +145,11 @@ class CameraFragment : Fragment() {
 
     private fun takePhoto() {
         val imageCapture = imageCapture ?: return
+        val date = SimpleDateFormat(Constants.FILE_NAME_FORMAT,
+            Locale.getDefault()).format(System.currentTimeMillis())
         val photoFile = File(
-            outputDirectory, SimpleDateFormat(Constants.FILE_NAME_FORMAT,
-                Locale.getDefault()).format(System.currentTimeMillis()) + ".jpg")
+            outputDirectory, "$date.jpg"
+        )
         val outputOption = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
         imageCapture.takePicture(outputOption, ContextCompat.getMainExecutor(ctx),
@@ -167,6 +157,7 @@ class CameraFragment : Fragment() {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                     val savedUri = Uri.fromFile(photoFile)
                     val msg = "PhotoSaved"
+                    sending(photoFile, date)
                     Toast.makeText(ctx, "$msg $savedUri", Toast.LENGTH_SHORT).show()
                 }
 
@@ -176,6 +167,43 @@ class CameraFragment : Fragment() {
 
             }
         )
+    }
+
+    private fun makeDir() {
+        GlobalScope.launch(Dispatchers.IO) {
+            val client = OkHttpClient()
+            val dirName = SimpleDateFormat(Constants.FILE_NAME_FORMAT,
+                Locale.getDefault()).format(System.currentTimeMillis()).toString()
+            val requestBody = RequestBody.create("application/json".toMediaTypeOrNull(), "{\"dirName\":\"$dirName\"}")
+            val request = Request.Builder()
+                .url("http://192.168.1.143:3000/create-directory")
+                .post(requestBody)
+                .build()
+            val response = client.newCall(request).execute()
+            println(response.body?.string())
+        }
+    }
+
+    private fun sending(photoFile: File, name: String) {
+        GlobalScope.launch(Dispatchers.IO) {
+            val client = OkHttpClient()
+
+            val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(
+                    "photo",
+                    "$name.jpg",
+                    photoFile.asRequestBody("image/jpeg".toMediaType())
+                )
+                .build()
+
+            val request = Request.Builder()
+                .url("http://192.168.1.143:3000/upload")
+                .post(requestBody)
+                .build()
+
+            client.newCall(request).execute()
+        }
     }
 
     override fun onRequestPermissionsResult(

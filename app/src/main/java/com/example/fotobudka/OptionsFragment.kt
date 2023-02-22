@@ -7,7 +7,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.os.bundleOf
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.example.fotobudka.databinding.FragmentOptionsBinding
@@ -43,7 +42,11 @@ class OptionsFragment : Fragment() {
             val duration = binding.breakDurationET.text.toString()
             val beforePhoto = binding.timeBeforePhotoET.text.toString()
 
-            if (numberOfPhotos.toInt() < 2 || duration.toInt() < 2 || beforePhoto.toInt() < 2) {
+            if (numberOfPhotos.isEmpty() || duration.isEmpty() || beforePhoto.isEmpty()) {
+                Toast.makeText(ctx, "Number of photos, duration and time before first" +
+                        " must be > 2", Toast.LENGTH_SHORT).show()
+            }
+            else if (numberOfPhotos.toInt() < 2 || duration.toInt() < 2 || beforePhoto.toInt() < 2) {
                 Toast.makeText(ctx, "Number of photos, duration and time before first" +
                         " must be > 2", Toast.LENGTH_SHORT).show()
             } else if (beforePhoto > duration) {
