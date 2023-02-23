@@ -34,9 +34,6 @@ import java.util.concurrent.Executors
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 
 class CameraFragment : Fragment() {
 
@@ -110,13 +107,6 @@ class CameraFragment : Fragment() {
             makeDir()
             for (i in 1 .. a) {
                 Handler(Looper.getMainLooper()).postDelayed({
-                    if (i == 1) {
-                        beforePhotoSound.start()
-                    } else {
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            beforePhotoSound.start()
-                        }, bb * i + 2000)
-                    }
                     Handler(Looper.getMainLooper()).postDelayed({
                         if (i != a) {
                             takePhoto()
@@ -126,6 +116,7 @@ class CameraFragment : Fragment() {
                             takePhotoSound.start()
                             Handler(Looper.getMainLooper()).postDelayed({
                                 endOfSeriesSound.start()
+                                makeCollage()
                             }, 2000)
                     }}, bb * i)
                 }, (dd-bb) * i)
@@ -181,6 +172,23 @@ class CameraFragment : Fragment() {
                 .build()
             val response = client.newCall(request).execute()
             println(response.body?.string())
+        }
+    }
+
+    private fun makeCollage() {
+        GlobalScope.launch(Dispatchers.IO) {
+            val client = OkHttpClient()
+            val request = Request.Builder()
+                .url("http://192.168.1.143:3000/collage")
+                .build()
+
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val responseBody = response.body?.string()
+                println(responseBody)
+            } else {
+                println("Error: ${response.code}")
+            }
         }
     }
 
